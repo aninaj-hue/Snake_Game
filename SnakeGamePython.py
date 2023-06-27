@@ -1,144 +1,163 @@
-import turtle
+from tkinter import *
 import random
-
-#  @python.coder_
-WIDTH = 500
-HEIGHT = 500
-FOOD_SIZE = 10
-DELAY = 100
-offsets = {
-    "up": (0, 20),
-    "down": (0, -20),
-    "left": (-20, 0),
-    "right": (20, 0)
-}
-def reset():
-    global snake, snake_direction, food_pos, pen
-    snake = [[0, 0], [0, 20], [0, 40], [0, 50], [0, 60]]
-    snake_direction = "up"
-    food_pos = get_random_food_pos()
-    food.goto(food_pos)
-    # screen.update() Only needed if we are fussed about drawing food before next call to draw_snake().
-    move_snake()
-
-
-def move_snake():
-    global snake_direction
-
-    #  Next position for head of snake.
-    new_head = snake[-1].copy()
-    new_head[0] = snake[-1][0] + offsets[snake_direction][0]
-    new_head[1] = snake[-1][1] + offsets[snake_direction][1]
-
-    # Check self-collision
-    if new_head in snake[:-1]:
-        reset()
+ 
+GAME_WIDTH = 700
+GAME_HEIGHT = 700
+SPEED = 100
+SPACE_SIZE = 50
+BODY_PARTS = 3
+SNAKE_COLOR = "#00FF00"
+FOOD_COLOR = "#FF0000"
+BACKGROUND_COLOR = "#000000"
+ 
+ 
+class Snake:
+ 
+    def __init__(self):
+        self.body_size = BODY_PARTS
+        self.coordinates = []
+        self.squares = []
+ 
+        for i in range(0, BODY_PARTS):
+            self.coordinates.append([0, 0])
+ 
+        for x, y in self.coordinates:
+            square = canvas.create_rectangle(x, y, x + SPACE_SIZE, y + SPACE_SIZE, fill=SNAKE_COLOR, tag="snake")
+            self.squares.append(square)
+ 
+ 
+class Food:
+ 
+    def __init__(self):
+ 
+        x = random.randint(0, (GAME_WIDTH / SPACE_SIZE)-1) * SPACE_SIZE
+        y = random.randint(0, (GAME_HEIGHT / SPACE_SIZE) - 1) * SPACE_SIZE
+ 
+        self.coordinates = [x, y]
+ 
+        canvas.create_oval(x, y, x + SPACE_SIZE, y + SPACE_SIZE, fill=FOOD_COLOR, tag="food")
+ 
+ 
+def next_turn(snake, food):
+ 
+    x, y = snake.coordinates[0]
+ 
+    if direction == "up":
+        y -= SPACE_SIZE
+    elif direction == "down":
+        y += SPACE_SIZE
+    elif direction == "left":
+        x -= SPACE_SIZE
+    elif direction == "right":
+        x += SPACE_SIZE
+ 
+    snake.coordinates.insert(0, (x, y))
+ 
+    square = canvas.create_rectangle(x, y, x + SPACE_SIZE, y + SPACE_SIZE, fill=SNAKE_COLOR)
+ 
+    snake.squares.insert(0, square)
+ 
+    if x == food.coordinates[0] and y == food.coordinates[1]:
+ 
+        global score
+ 
+        score += 1
+ 
+        label.config(text="Score:{}".format(score))
+ 
+        canvas.delete("food")
+ 
+        food = Food()
+ 
     else:
-
-        snake.append(new_head)
-        if not food_collision():
-            snake.pop(0)  # Keep the snake the same length unless fed.
-
-        #  Allow screen wrapping
-        if snake[-1][0] > WIDTH / 2:
-            snake[-1][0] -= WIDTH
-        elif snake[-1][0] < - WIDTH / 2:
-            snake[-1][0] += WIDTH
-        elif snake[-1][1] > HEIGHT / 2:
-            snake[-1][1] -= HEIGHT
-        elif snake[-1][1] < -HEIGHT / 2:
-            snake[-1][1] += HEIGHT
-
-        # Clear previous snake stamps
-        pen.clearstamps()
-
-        # Draw snake
-        for segment in snake:
-            pen.goto(segment[0], segment[1])
-            pen.stamp()
-
-        # Refresh screen
-        screen.update()
-
-        # Rinse and repeat
-        turtle.ontimer(move_snake, DELAY)
-
-
-def food_collision():
-    global food_pos
-    global rezult
-    result=get_distance(snake[-1], food_pos)
-    if result < 20:
-        food_pos = get_random_food_pos()
-        food.goto(food_pos)
+ 
+        del snake.coordinates[-1]
+ 
+        canvas.delete(snake.squares[-1])
+ 
+        del snake.squares[-1]
+ 
+    if check_collisions(snake):
+        game_over()
+ 
+    else:
+        window.after(SPEED, next_turn, snake, food)
+ 
+ 
+def change_direction(new_direction):
+ 
+    global direction
+ 
+    if new_direction == 'left':
+        if direction != 'right':
+            direction = new_direction
+    elif new_direction == 'right':
+        if direction != 'left':
+            direction = new_direction
+    elif new_direction == 'up':
+        if direction != 'down':
+            direction = new_direction
+    elif new_direction == 'down':
+        if direction != 'up':
+            direction = new_direction
+ 
+ 
+def check_collisions(snake):
+ 
+    x, y = snake.coordinates[0]
+ 
+    if x < 0 or x >= GAME_WIDTH:
         return True
+    elif y < 0 or y >= GAME_HEIGHT:
+        return True
+ 
+    for body_part in snake.coordinates[1:]:
+        if x == body_part[0] and y == body_part[1]:
+            return True
+ 
     return False
-
-
-def get_random_food_pos():
-    x = random.randint(- WIDTH / 2 + FOOD_SIZE, WIDTH / 2 - FOOD_SIZE)
-    y = random.randint(- HEIGHT / 2 + FOOD_SIZE, HEIGHT / 2 - FOOD_SIZE)
-    return (x, y)
-
-
-def get_distance(pos1, pos2):
-    x1, y1 = pos1
-    x2, y2 = pos2
-    distance = ((y2 - y1) * 2 + (x2 - x1) * 2) ** 0.5
-    return distance
-
-
-def go_up():
-    global snake_direction
-    if snake_direction != "down":
-        snake_direction = "up"
-
-
-def go_right():
-    global snake_direction
-    if snake_direction != "left":
-        snake_direction = "right"
-
-
-def go_down():
-    global snake_direction
-    if snake_direction != "up":
-        snake_direction = "down"
-
-
-def go_left():
-    global snake_direction
-    if snake_direction != "right":
-        snake_direction = "left"
-
-
-# Screen
-screen = turtle.Screen()
-screen.setup(WIDTH, HEIGHT)
-screen.title("Snake  Game")
-screen.bgcolor("black")
-screen.setup(500, 500)
-screen.tracer(0)
-
-# Pen
-pen = turtle.Turtle("square")
-pen.penup()
-pen.pencolor("yellow")
-
-# Food
-food = turtle.Turtle()
-food.shape("circle")
-food.color("red")
-food.shapesize(FOOD_SIZE / 20)  # Default size of turtle "square" shape is 20.
-food.penup()
-
-# Event handlers
-screen.listen()
-screen.onkey(go_up, "Up")
-screen.onkey(go_right, "Right")
-screen.onkey(go_down, "Down")
-screen.onkey(go_left, "Left")
-
-# Let's go
-reset()
-turtle.done()
+ 
+ 
+def game_over():
+ 
+    canvas.delete(ALL)
+    canvas.create_text(canvas.winfo_width()/2, canvas.winfo_height()/2,
+                       font=('consolas',70), text="GAME OVER", fill="red", tag="gameover")
+ 
+ 
+window = Tk()
+window.title("Snake game")
+window.resizable(False, False)
+ 
+score = 0
+direction = 'down'
+ 
+label = Label(window, text="Score:{}".format(score), font=('consolas', 40))
+label.pack()
+ 
+canvas = Canvas(window, bg=BACKGROUND_COLOR, height=GAME_HEIGHT, width=GAME_WIDTH)
+canvas.pack()
+ 
+window.update()
+ 
+window_width = window.winfo_width()
+window_height = window.winfo_height()
+screen_width = window.winfo_screenwidth()
+screen_height = window.winfo_screenheight()
+ 
+x = int((screen_width/2) - (window_width/2))
+y = int((screen_height/2) - (window_height/2))
+ 
+window.geometry(f"{window_width}x{window_height}+{x}+{y}")
+ 
+window.bind('<Left>', lambda event: change_direction('left'))
+window.bind('<Right>', lambda event: change_direction('right'))
+window.bind('<Up>', lambda event: change_direction('up'))
+window.bind('<Down>', lambda event: change_direction('down'))
+ 
+snake = Snake()
+food = Food()
+ 
+next_turn(snake, food)
+ 
+window.mainloop()
